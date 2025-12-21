@@ -1,0 +1,57 @@
+name: Bitcoin Model CI (Advanced)
+
+# Kapan robot iki nyambut gawe?
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-train:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Jupuk Kodinganmu seko Repo
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Siapne Python 3.9
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    # 3. Install Library (Pandas, MLflow, dll)
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+        pip install -r Membangun_model/requirements.txt
+
+    # 4. KRITERIA BASIC: LINTING (Ngecek Kerapian Kode)
+    - name: Lint with flake8
+      run: |
+        # E9,F63,F7,F82 = Error fatal
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    # 5. KRITERIA SKILLED: TRAINING MODEL
+    # Penting: Token DagsHub dijupuk seko 'Secrets' GitHub
+    - name: Run Model Tuning & Tracking
+      env:
+        DAGSHUB_USER_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+      run: |
+        cd Membangun_model
+        python modelling_tuning.py
+
+    # 6. KRITERIA ADVANCED: UPLOAD ARTEFAK KE GITHUB
+    # Nyimpen gambar hasil training neng halaman Actions
+    - name: Upload Artifacts to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: model-artifacts
+        path: |
+          Membangun_model/*.png
+          Membangun_model/*.jpg
